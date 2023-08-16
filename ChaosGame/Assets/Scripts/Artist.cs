@@ -6,12 +6,31 @@ public class Artist : MonoBehaviour
 {
     public Transform particle, pivot, canvas;
     public List<Transform> pivots = new List<Transform>();
-    public float speed;
+    //public float speed;
     Vector2 lastPoint;
+    public GameObject startButton, stopButton;
+    Transform lastPivot;
+    bool run;
+    int iter;
+    public int maxIter;
 
     private void Start()
     {
+        run = false;
         StartCoroutine(SetPivots());
+    }
+    private void Update()
+    {
+        if (!run || iter > maxIter*pivots.Count+1)
+        {
+            return;
+        }
+        for (int i = 0; i < 40; i++)
+        {
+            Transform newPoint = Instantiate(particle, (lastPoint + (Vector2)pivots[Random.Range(0, pivots.Count)].position) / Mathf.PI, Quaternion.identity, canvas);
+            lastPoint = newPoint.position;
+            iter++;
+        }
     }
     IEnumerator SetPivots()
     {
@@ -21,18 +40,46 @@ public class Artist : MonoBehaviour
         pivots.Add(newPivot);
         StartCoroutine(SetPivots());
     }
-    IEnumerator Tick()
+    /*IEnumerator Tick()
     {
         yield return new WaitForSeconds(1/speed);
-        Transform newPoint = Instantiate(particle, (lastPoint + (Vector2)pivots[Random.Range(0, pivots.Count)].position)/2, Quaternion.identity, canvas);
+        Transform newPoint = Instantiate(particle, (lastPoint + PickPivot())/2, Quaternion.identity, canvas);
         lastPoint = newPoint.position;
         StartCoroutine(Tick());
-    }
-    public void StartSim(GameObject button)
+    }*/
+    Vector2 PickPivot()
     {
+        Transform tempPivot = lastPivot;
+        while (tempPivot == lastPivot)
+        {
+            tempPivot = pivots[Random.Range(0, pivots.Count)];
+        }
+        lastPivot = tempPivot;
+        return (Vector2)tempPivot.position;
+    }
+    public void StartSim()
+    {
+        iter = 0;
         lastPoint = pivots[Random.Range(0, pivots.Count)].position;
-        button.SetActive(false);
         StopAllCoroutines();
-        StartCoroutine(Tick());
+        run = true;
+        stopButton.SetActive(true);
+        startButton.SetActive(false);
+    }
+    public void Stop()
+    {
+        run = false;
+        foreach (GameObject points in GameObject.FindGameObjectsWithTag("particle"))
+        {
+            Destroy(points);
+        }
+        foreach (Transform basePoint in pivots)
+        {
+            Destroy(basePoint.gameObject);
+        }
+        pivots = new List<Transform>();
+        StartCoroutine(SetPivots());
+        startButton.SetActive(true);
+        stopButton.SetActive(false);
     }
 }
